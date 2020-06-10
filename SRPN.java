@@ -131,12 +131,12 @@ public class SRPN {
             } // if there is a negative sign
             else if (currInput.matches("-")) {
                 //if the sign is the first in the input > 1 it is treated as a arithmetic sign
-                if (sLength > 1 && tempNum.length() == 0) {
-                    storeNum(currInput, i);
+                if (sLength > 1 && i == 0) {
+                    storeSignOrSolve(currInput, i);
                     continue;
                 }//if the input > 1 and there is no tempNum, it is a negative sign, store with number
-                else if (sLength > 1 && i == 0) {
-                    storeSignOrSolve(currInput, i);
+                else if (sLength > 1 && tempNum.length() == 0) {
+                    storeNum(currInput, i);
                     continue;
                 }
             } // if it is a number store it
