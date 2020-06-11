@@ -130,11 +130,12 @@ public class SRPN {
                 continue;
             } // if there is a negative sign
             else if (currInput.matches("-")) {
-                //if the sign is the first in the input > 1 it is treated as a arithmetic sign
+                // if the sign is the first in the input > 1 it is treated as a arithmetic sign
                 if (sLength > 1 && i == 0) {
                     storeSignOrSolve(currInput, i);
                     continue;
-                }//if the input > 1 and there is no tempNum, it is a negative sign, store with number
+                } // if the input > 1 and there is no tempNum, it is a negative sign, store with
+                  // number
                 else if (sLength > 1 && tempNum.length() == 0) {
                     storeNum(currInput, i);
                     continue;
@@ -198,13 +199,22 @@ public class SRPN {
     // store operator sign in the index for infix or do BODMAS
     private void storeSignOrSolve(String currInput, int i) {
         char sign = currInput.charAt(0);
-        //if the input wants to use the previous answer in the infix, set the tempNum to the previous answer
-        if (sLength > 1 && i == 0) {
+        // if the input wants to use the previous answer in the infix, and the input it
+        // only one number to calculate, set the tempNum to the previous answer and push
+        // to stack
+        String sub = currS.substring(1, sLength);
+        boolean signsPresent = Pattern.matches(regexSign, sub);
+        if (sLength > 1 && i == 0 && !signsPresent) {
             tempNum = String.valueOf(nums.peek());
+        } // else if the sign is a negative and there is another sign after the negative
+          // sign, store the negative in with the number
+        else if (signsPresent && currInput.matches("-")) {
+            storeNum(currInput, i);
+            return;
         }
         // if the input is not a single sign and there is still a number to be pushed to
         // the stack, push num, push sign, and set infix flag
-       if (sLength > 1 && tempNum.length() > 0) {
+        if (sLength > 1 && tempNum.length() > 0) {
             pushNum();
             signs.push(sign);
             doInfix = true;
