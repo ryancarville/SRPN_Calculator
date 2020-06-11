@@ -43,77 +43,84 @@ public class SRPN {
 
     // main program the input calls
     public void processCommand(String s) {
-        // add minimum int number to stack at start
-        if (nums.isEmpty()) {
-            nums.push(minInt);
-        }
-        // remove any white spaces and set to class variable
-        currS = s.replaceAll(" ", "");
-        // get the length of the current string and update class variable
-        sLength = currS.length();
-        // loop thru the input string
-        for (int i = 0; i < sLength; i++) {
-            // declare and initialize variable for current char
-            String currInput = new String();
-            currInput = String.valueOf(s.charAt(i));
-            // if nothing is inputted, exit
-            if (sLength == 0) {
-                return;
-            } // if input is a single "#" set calculator on/off flag and exit
-            else if (sLength == 1 && currInput.matches("#")) {
-                calcPower = calcPower ? false : true;
-                return;
-            } // if calculator flag false, exit function
-            else if (!calcPower) {
-                return;
-            } // if input has 2 or more "#" it is a comment so clear nums any nums add from
-              // the input and exit
-            else if (sLength > 1 && currInput.matches("#")) {
-                String sub = currS.substring(i, sLength);
-                if (sub.contains("#")) {
-                    while (currNumCount > 0) {
-                        nums.pop();
-                        currNumCount--;
-                    }
+        try {
+            // add minimum int number to stack at start
+            if (nums.isEmpty()) {
+                nums.push(minInt);
+            }
+            // remove any white spaces and set to class variable
+            currS = s.replaceAll(" ", "");
+            // get the length of the current string and update class variable
+            sLength = currS.length();
+            // loop thru the input string
+            for (int i = 0; i < sLength; i++) {
+                // declare and initialize variable for current char
+                String currInput = new String();
+                currInput = String.valueOf(s.charAt(i));
+                // if nothing is inputted, exit
+                if (sLength == 0) {
                     return;
-                } else if (tempNum.length() > 0) {
-                    pushNum();
+                } // if input is a single "#" set calculator on/off flag and exit
+                else if (sLength == 1 && currInput.matches("#")) {
+                    calcPower = calcPower ? false : true;
+                    return;
+                } // if calculator flag false, exit function
+                else if (!calcPower) {
+                    return;
+                } // if input has 2 or more "#" it is a comment so clear nums any nums add from
+                  // the input and exit
+                else if (sLength > 1 && currInput.matches("#")) {
+                    String sub = currS.substring(i, sLength);
+                    if (sub.contains("#")) {
+                        while (currNumCount > 0) {
+                            nums.pop();
+                            currNumCount--;
+                        }
+                        return;
+                    } else if (tempNum.length() > 0) {
+                        pushNum();
+                        continue;
+                    }
+                    continue;
+
+                } // if the input is not a valid sign, char or number tell user and move to the
+                  // next char in the loop
+                else if (!Pattern.matches(regexAll, currInput)) {
+                    System.out.println("Unrecognized operator or operand " + "\"" + currInput + "\"" + ".");
+                    if (tempNum.length() > 0) {
+                        pushNum();
+                    }
+                    continue;
+                } // when input is "d" print out the number stack and continue thru the loop
+                else if (currInput.matches("d")) {
+                    printAnswerStack();
+                    continue;
+                } // if the input is "r" add current position of rNums array to the numbers stack
+                  // then continue thru the loop
+                else if (currInput.matches("r")) {
+                    rNumsLoop();
+                    continue;
+                } // if there is a negative sign
+                else if (currInput.matches("-")) {
+                    handleMinus(currInput, i);
+                    continue;
+                } // if it is a number store it
+                else if (Pattern.matches(regexNum, currInput)) {
+                    storeNum(currInput, i);
+                } // if it is a sign, store it if infix, but solve if single char
+                else if (Pattern.matches(regexSign, currInput)) {
+                    storeSignOrSolve(currInput);
                     continue;
                 }
-                continue;
-
-            } // if the input is not a valid sign, char or number tell user and move to the
-              // next char in the loop
-            else if (!Pattern.matches(regexAll, currInput)) {
-                System.out.println("Unrecognized operator or operand " + "\"" + currInput + "\"" + ".");
-                if (tempNum.length() > 0) {
+                if(currS.endsWith("=") && i == (sLength - 2)){
                     pushNum();
+                    postfix();
+                }else if ( i == sLength - 1) {
+                    postfix();
                 }
-                continue;
-            } // when input is "d" print out the number stack and continue thru the loop
-            else if (currInput.matches("d")) {
-                printAnswerStack();
-                continue;
-            } // if the input is "r" add current position of rNums array to the numbers stack
-              // then continue thru the loop
-            else if (currInput.matches("r")) {
-                rNumsLoop();
-                continue;
-            } // if there is a negative sign
-            else if (currInput.matches("-")) {
-                handleMinus(currInput, i);
-                continue;
-            } // if it is a number store it
-            else if (Pattern.matches(regexNum, currInput)) {
-                storeNum(currInput, i);
-            } // if it is a sign, store it if infix, but solve if single char
-            else if (Pattern.matches(regexSign, currInput)) {
-                storeSignOrSolve(currInput);
-                continue;
             }
-            if ((currS.endsWith("=") && i == (sLength - 2)) || i == sLength - 1) {
-                postfix();
-            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
     }
 
