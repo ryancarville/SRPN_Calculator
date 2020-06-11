@@ -97,6 +97,9 @@ public class SRPN {
               // next char in the loop
             else if (!Pattern.matches(regexAll, currInput)) {
                 System.out.println("Unrecognized operator or operand " + "\"" + currInput + "\"" + ".");
+                if (tempNum.length() > 0) {
+                    pushNum();
+                }
                 continue;
             } // if input is a single "#" set calculator on/off flag and exit
             else if (sLength == 1 && currInput.matches("#")) {
@@ -108,17 +111,19 @@ public class SRPN {
             } // if input has 2 or more "#" it is a comment so clear nums any nums add from
               // the input and exit
             else if (sLength > 1 && currInput.matches("#")) {
-                for (int k = i; k < sLength; k++) {
-                    String c = new String();
-                    c = String.valueOf(s.charAt(k));
-                    if (c.equals("#")) {
-                        while (currNumCount > 0) {
-                            nums.pop();
-                            currNumCount--;
-                        }
-                        return;
+                String sub = currS.substring(i, sLength);
+                if (sub.contains("#")) {
+                    while (currNumCount > 0) {
+                        nums.pop();
+                        currNumCount--;
                     }
+                    return;
+                } else if (tempNum.length() > 0) {
+                    pushNum();
+                    continue;
                 }
+                continue;
+
             } // when input is "d" print out the number stack and continue thru the loop
             else if (currInput.matches("d")) {
                 printAnswerStack();
@@ -131,13 +136,17 @@ public class SRPN {
             } // if there is a negative sign
             else if (currInput.matches("-")) {
                 // if the sign is the first in the input > 1 it is treated as a arithmetic sign
-                if (sLength > 1 && i == 0) {
-                    storeSignOrSolve(currInput, i);
-                    continue;
-                } // if the input > 1 and there is no tempNum, it is a negative sign, store with
-                  // number
-                else if (sLength > 1 && tempNum.length() == 0) {
+                String prev = "";
+                String next = "";
+                if (i > 0) {
+                    next = String.valueOf(currS.charAt(i + 1));
+                    prev = String.valueOf(currS.charAt(i - 1));
+                }
+                if (Pattern.matches(regexSign, prev) && Pattern.matches(regexNum,next)) {
                     storeNum(currInput, i);
+                    continue;
+                } else {
+                    storeSignOrSolve(currInput, i);
                     continue;
                 }
             } // if it is a number store it
@@ -146,6 +155,7 @@ public class SRPN {
             } // if it is a sign, store it if infix, but solve if single char
             else if (Pattern.matches(regexSign, currInput)) {
                 storeSignOrSolve(currInput, i);
+                continue;
             } // if it is the end of the loop and the doInfix flag true, preform the
               // arithmetic in correct order
             if (i == sLength - 1 && doInfix) {
@@ -199,26 +209,15 @@ public class SRPN {
     // store operator sign in the index for infix or do BODMAS
     private void storeSignOrSolve(String currInput, int i) {
         char sign = currInput.charAt(0);
-        // if the input wants to use the previous answer in the infix, and the input it
-        // only one number to calculate, set the tempNum to the previous answer and push
-        // to stack
-        String sub = currS.substring(1, sLength);
-        boolean signsPresent = Pattern.matches(regexSign, sub);
-        if (sLength > 1 && i == 0 && !signsPresent) {
-            tempNum = String.valueOf(nums.peek());
-        } // else if the sign is a negative and there is another sign after the negative
-          // sign, store the negative in with the number
-        else if (signsPresent && currInput.matches("-")) {
-            storeNum(currInput, i);
-            return;
-        }
-        // if the input is not a single sign and there is still a number to be pushed to
-        // the stack, push num, push sign, and set infix flag
-        if (sLength > 1 && tempNum.length() > 0) {
-            pushNum();
+        // if infix input
+        if (sLength > 1) {
             signs.push(sign);
             doInfix = true;
-            return;
+            // if the input is not a single sign and there is still a number to be pushed to
+            // the stack, push num, push sign, and set infix flag
+            if (tempNum.length() > 0) {
+                pushNum();
+            }
         } // else must be a normal input style so do the arithmetic
         else {
             BODMAS(sign, 1);
@@ -260,17 +259,18 @@ public class SRPN {
 
     // preform the infix calculations
     private void infix() {
-        // check and set single sign infix
-        boolean singleOpp = signs.size() > 1 ? false : true;
-        singleInfix = singleOpp;
         // while there are signs left, preform arithmetic
         while (!signs.isEmpty()) {
+            // check and set single sign infix
+            boolean singleOpp = signs.size() > 1 ? false : true;
+            singleInfix = singleOpp;
             // get the index of the sign
             int index = signs.size();
             // get the sign itself
             char sign = signs.pop();
+
             // if only one sign in signs stack do arithmetic and exit
-            if (index == 1) {
+            if (singleInfix) {
                 BODMAS(sign, index);
                 return;
             } // if there is more than one sign left, compare the sings and preform the higher
@@ -298,14 +298,13 @@ public class SRPN {
                 finalAnswer();
                 break;
             default:
-
                 // set the rest flag to false
                 reset = false;
                 // if it is a infix problem with more than 1 sign
                 if (doInfix && !singleInfix) {
                     // if it is the first calculation in the infix and the sign was not the last
                     // sign entered
-                    if (firstInfix && index < currNumCount - 1) {
+                    if (firstInfix && index != nums.size() - 1) {
                         // loop to the correct index in the numbers stack while popping the numbers into
                         // a temporary stack
                         for (int i = currNumCount - 1; i > index; i--) {
@@ -321,29 +320,25 @@ public class SRPN {
                             int plate = tempNumsStack.pop();
                             nums.push(plate);
                         }
-                        // reduce the current numbers to calculate counter
-                        currNumCount--;
-                        currNumCount--;
                         // set firstInfix flag to false
                         firstInfix = false;
                     } // if it is the first calculation in the infix and the sign was entered last
-                    else if (firstInfix && index == currNumCount - 1) {
+                    else if (firstInfix && index == nums.size() - 1) {
                         // pop off the two numbers for the arithmetic
                         b = nums.pop();
                         a = nums.pop();
-                        // reduce the current numbers to calculate counter
-                        currNumCount--;
-                        currNumCount--;
-                    } // else continue the infix operations using the answer from the previous
-                      // calculation and the next number in the stack
-                    else {
-                        b = nums.pop();
-                        a = tempAnswer;
-                        // reduce the current numbers to calculate counter
-                        currNumCount--;
+                    } else {
+                        System.out.println("Something went very wrong.");
+                        return;
                     }
-                } // else it is a non-infix problem so pop off the most current two numbers from
-                  // the stack
+                } // else continue the infix operations using the answer from the previous
+                  // calculation and the next number in the stack
+                else if (doInfix && !firstInfix) {
+                    b = nums.pop();
+                    a = tempAnswer;
+                }
+                // else it is a non-infix problem so pop off the most current two numbers from
+                // the stack
                 else {
                     b = nums.pop();
                     a = nums.pop();
