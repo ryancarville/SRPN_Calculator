@@ -1,8 +1,5 @@
+import java.lang.Math;
 import java.util.Stack;
-import java.util.Queue;
-
-import java.util.stream.*;
-import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -112,10 +109,10 @@ public class SRPN {
                     storeSignOrSolve(currInput);
                     continue;
                 }
-                if(currS.endsWith("=") && i == (sLength - 2)){
+                if (currS.endsWith("=") && i == (sLength - 2)) {
                     pushNum();
                     postfix();
-                }else if ( i == sLength - 1) {
+                } else if (i == sLength - 1) {
                     postfix();
                 }
             }
@@ -205,23 +202,26 @@ public class SRPN {
         }
     }
 
-    // store operator sign in the index for infix or do BODMAS
+    // recursive function for BODMAS sorting
     private void storeSignOrSolve(String sign) {
+        // if a single input sign do the arithmetic
         if (sLength == 1) {
             BODMAS(sign);
             return;
-        }
+        } // if there is still a number in the holding variable, push it to the stack
         if (tempNum.length() > 0) {
             pushNum();
-        }
+        } // if a equals, BODMAS to print answer
         if (sign.equals("=")) {
             BODMAS(sign);
             return;
-        }
+        } // if there are no signs in the stack, add the sign, exit
         if (signs.isEmpty()) {
             signs.push(sign);
             return;
-        } else {
+        } // else check the signs for BODMAS and preform arithmetic if higher sign popped,
+          // else add the sign to the stack
+        else {
             boolean bool = orderOfOps(sign, signs.peek());
             if (bool) {
                 signs.push(sign);
@@ -232,7 +232,6 @@ public class SRPN {
                 storeSignOrSolve(sign);
             }
         }
-
     }
 
     // push the full number to the number stack from the tempNum string
@@ -241,11 +240,11 @@ public class SRPN {
         if (nums.peek().equals(minInt)) {
             nums.pop();
         }
-        // push int to stack
+        // push number to stack
         nums.push(tempNum);
         // clear the temp number string
         tempNum = "";
-        // add one to the counter for current arithmetic numbers
+        // add one to the counter for current set of numbers
         currNumCount++;
     }
 
@@ -267,31 +266,38 @@ public class SRPN {
     private void BODMAS(String sign) {
         // ints for nums to be calculated
         Integer a = null, b = null, max = Integer.parseInt(maxInt), min = Integer.parseInt(minInt);
+        // if not equals, get numbers
         if (!sign.equals("=")) {
+            // pop numbers
             b = Integer.parseInt(nums.pop());
             a = Integer.parseInt(nums.pop());
-            // if divide by 0
+            // if divide by 0, set answer to 0, and exit
             if (b == 0 && sign.equals("/")) {
                 System.out.println("Divide by 0.");
                 answer = 0;
                 pushAnswer();
                 return;
-            } // if negative power, set answer to negative power and break out of loop
+            } // if negative power, set answer to negative power, and exit
             if (b < 0 && sign.equals("^")) {
                 System.out.println("Negative power.");
                 answer = b;
                 pushAnswer();
                 return;
-            } // if max int entered and added to set answer as max int
-            if ((a == max || b == max) && sign.equals("+")) {
-                answer = max;
-                pushAnswer();
-                return;
-            } // if a input number is min int and sub from set answer as min int
-            if ((a == min || b == min) && sign.equals("-")) {
-                answer = min;
-                pushAnswer();
-                return;
+            } // if int entered exceeds limits
+            try {
+                Integer intTest = Math.addExact(a, b);
+            } catch (Exception e) {
+                if (e.getMessage().equals("integer overflow")) {
+                    if (sign.equals("+")) {
+                        answer = max;
+                        pushAnswer();
+                        return;
+                    } else if (sign.equals("-")) {
+                        answer = min;
+                        pushAnswer();
+                        return;
+                    }
+                }
             }
         }
         // switch for "=" and default for all the other signs
