@@ -12,9 +12,9 @@ public class SRPN {
     // stack for signs
     Stack<String> signs = new Stack<String>();
     // boolean flags
-    boolean calcPower, reset;
+    boolean calcPower, findCommentEnd, reset;
     // Integers
-    Integer tempAnswer, answer, currRCount, sLength, currNumCount;
+    Integer a, b, answer, currRCount, sLength, currNumCount;
     // Strings
     String currS, tempNum, regexAll, regexNum, regexSign, minInt, maxInt;
     // array of fixed "random" numbers
@@ -30,7 +30,6 @@ public class SRPN {
         this.currS = "";
         this.sLength = currS.length();
         this.tempNum = new String();
-        this.tempAnswer = null;
         this.currRCount = 0;
         this.currNumCount = 0;
         this.regexAll = "(.*)([0-9 dr+%^*/=-])(.*)";
@@ -41,12 +40,16 @@ public class SRPN {
     // main program the input calls
     public void processCommand(String s) {
         try {
+            // set all stack minium capacity
+            nums.ensureCapacity(100);
+            tempNumsStack.ensureCapacity(100);
+            signs.ensureCapacity(10);
             // add minimum int number to stack at start
             if (nums.isEmpty()) {
                 nums.push(minInt);
             }
             // remove any white spaces and set to class variable
-            currS = s.replaceAll(" ", "");
+            currS = s;
             // get the length of the current string and update class variable
             sLength = currS.length();
             // loop thru the input string
@@ -57,94 +60,97 @@ public class SRPN {
                 // if nothing is inputted, exit
                 if (sLength == 0) {
                     return;
-                } // if input is a single "#" set calculator on/off flag and exit
-                else if (sLength == 1 && currInput.matches("#")) {
-                    calcPower = calcPower ? false : true;
-                    return;
-                } // if calculator flag false, exit function
-                else if (!calcPower) {
-                    return;
-                } // if input has 2 or more "#" it is a comment so clear nums any nums add from
-                  // the input and exit
-                else if (sLength > 1 && currInput.matches("#")) {
-                    String sub = currS.substring(i, sLength);
-                    if (sub.contains("#")) {
-                        while (currNumCount > 0) {
-                            nums.pop();
-                            currNumCount--;
+                } else if (currInput.equals(" ")) {
+                    pushNum();
+                    continue;
+                }
+                // if input is a "#"
+                else if (currInput.equals("#")) {
+                    String prev = null;
+                    String next = null;
+                    // push number if there was one before
+                    pushNum();
+                    // if it is a single "#" input or it is at the end of a input preceded by a
+                    // space
+                    if (sLength > 1) {
+                        next = currS.substring(i + 1, i + 2);
+                        if (i > 0) {
+                            prev = currS.substring(i - 1, i);
                         }
-                        return;
-                    } else if (tempNum.length() > 0) {
-                        pushNum();
+                    } else {
+                        boolean soloHash = currS.replaceAll(" ", "").equals("#");
+                        if (soloHash) {
+                            calcPower = calcPower ? false : true;
+                            return;
+                        }
+                    }
+                    if (next.isBlank()) {
+                        int nextHash = currS.indexOf("#", i + 1);
+                        String nextHashPrev = currS.substring(nextHash - 1, nextHash);
+                        if (nextHashPrev.isBlank() && i < sLength) {
+                            i = nextHash;
+                            continue;
+                        } else {
+                            if (sLength - 1 > i) {
+                                next = currS.substring(nextHash + 1, nextHash + 2);
+                            }
+
+                        }
+
+                    } else {
+                        notValidInput(currInput);
                         continue;
                     }
-                    continue;
 
-                } // if the input is not a valid sign, char or number tell user and move to the
-                  // next char in the loop
-                else if (!Pattern.matches(regexAll, currInput)) {
-                    System.out.println("Unrecognized operator or operand " + "\"" + currInput + "\"" + ".");
-                    if (tempNum.length() > 0) {
-                        pushNum();
-                    }
-                    continue;
+                } // if calculator is turned off
+                else if (!calcPower) {
+                    return;
                 } // when input is "d" print out the number stack and continue thru the loop
-                else if (currInput.matches("d")) {
-                    printAnswerStack();
-                    continue;
+                else if (currInput.equals("d")) {
+                    printNumsStack();
                 } // if the input is "r" add current position of rNums array to the numbers stack
                   // then continue thru the loop
-                else if (currInput.matches("r")) {
+                else if (currInput.equals("r")) {
                     rNumsLoop();
-                    continue;
                 } // if there is a negative sign
-                else if (currInput.matches("-")) {
+                else if (currInput.equals("-")) {
                     handleMinus(currInput, i);
-                    continue;
                 } // if it is a number store it
                 else if (Pattern.matches(regexNum, currInput)) {
                     storeNum(currInput, i);
                 } // if it is a sign, store it if infix, but solve if single char
                 else if (Pattern.matches(regexSign, currInput)) {
                     storeSignOrSolve(currInput);
-                    continue;
+                } // if the input is not a valid sign, char or number tell user and move to the
+                  // next char in the loop
+                else {
+                    notValidInput(currInput);
                 }
                 if (currS.endsWith("=") && i == (sLength - 2)) {
                     pushNum();
                     postfix();
+                    break;
                 } else if (i == sLength - 1) {
                     postfix();
+                    break;
                 }
             }
-        } catch (Exception e) {
+        } catch (
+
+        Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private void handleMinus(String currInput, int i) {
-        // if the sign is the first in the input > 1 it is treated as a arithmetic sign
-        String prev = "+";
-        String next = String.valueOf(currS.charAt(i));
-        String sub = currS.substring(1, sLength);
-        if (i > 0) {
-            next = String.valueOf(currS.charAt(i + 1));
-            prev = String.valueOf(currS.charAt(i - 1));
-        } // if the minus sign is between a operator and number it is a negative so store
-          // it with number
-        if (Pattern.matches(regexSign, prev) && Pattern.matches(regexNum, next)) {
-            storeNum(currInput, i);
-            return;
-        } else if (sLength > 1 && currS.startsWith("-") && !sub.contains("-")) {
-            storeNum(currInput, i);
-        } // else it is a subtraction sign store it
-        else {
-            storeSignOrSolve(currInput);
-            return;
+    private void notValidInput(String currInput) {
+        System.out.println("Unrecognized operator or operand " + "\"" + currInput + "\"" + ".");
+        if (tempNum.length() > 0) {
+            pushNum();
         }
     }
 
     // print the current answer stack
-    private void printAnswerStack() {
+    private void printNumsStack() {
         while (!nums.isEmpty()) {
             String currPlate = nums.pop();
             tempNumsStack.push(currPlate);
@@ -165,7 +171,7 @@ public class SRPN {
             nums.pop();
         }
         // if the loop counter is == to the MAX limit - 1 reset the loop counter
-        if (currRCount == MAX) {
+        if (currRCount == MAX - 1) {
             currRCount = 0;
         }
         // set the rNum at current index as the answer
@@ -176,29 +182,38 @@ public class SRPN {
         currRCount++;
     }
 
+    // sort if a minus sign is a operator or a negative
+    private void handleMinus(String currInput, int i) {
+        // if the sign is the first in the input > 1 it is treated as a arithmetic sign
+        String prev = " ";
+        String next = String.valueOf(currS.charAt(i + 1));
+        String sub = currS.substring(1, sLength);
+        if (i > 0) {
+            next = String.valueOf(currS.charAt(i + 1));
+            prev = String.valueOf(currS.charAt(i - 1));
+        } // if the minus sign is between a operator and number it is a negative so store
+          // it with number
+        if (Pattern.matches(regexSign, prev) && Pattern.matches(regexNum, next)) {
+            storeNum(currInput, i);
+            return;
+        } else if (sLength > 1 && currS.startsWith("-") && !sub.contains("-")) {
+            storeNum(currInput, i);
+        } // else it is a subtraction sign store it
+        else {
+            storeSignOrSolve(currInput);
+            return;
+        }
+    }
+
     // set class temp variable to whole single number
     private void storeNum(String currInput, int i) {
         tempNum += currInput;
         // if its on the last char in the input push the number to the stack
         if (i == (sLength - 1)) {
             pushNum();
-            currNumCount++;
-
             if (signs.size() > 0) {
                 postfix();
             }
-        }
-    }
-
-    // check the order of operations. If the current sign is a higher order sign
-    // then return true
-    private boolean orderOfOps(String sign1, String sign2) {
-        if ((sign1.equals("*") || sign1.equals("/")) && (sign2.equals("+") || sign2.equals("-"))) {
-            return true;
-        } else if ((sign1.equals("+") || sign1.equals("-")) && (sign2.equals("+") || sign2.equals("-"))) {
-            return true;
-        } else {
-            return false;
         }
     }
 
@@ -234,18 +249,32 @@ public class SRPN {
         }
     }
 
+    // check the order of operations. If the current sign is a higher order sign
+    // then return true
+    private boolean orderOfOps(String sign1, String sign2) {
+        if ((sign1.equals("*") || sign1.equals("/")) && (sign2.equals("+") || sign2.equals("-"))) {
+            return true;
+        } else if ((sign1.equals("+") || sign1.equals("-")) && (sign2.equals("+") || sign2.equals("-"))) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     // push the full number to the number stack from the tempNum string
     private void pushNum() {
         // if default min int value still on stack, remove
         if (nums.peek().equals(minInt)) {
             nums.pop();
         }
-        // push number to stack
-        nums.push(tempNum);
-        // clear the temp number string
-        tempNum = "";
-        // add one to the counter for current set of numbers
-        currNumCount++;
+        if (tempNum.length() > 0) {
+            // push number to stack
+            nums.push(tempNum);
+            // clear the temp number string
+            tempNum = "";
+            // add one to the counter for current set of numbers
+            currNumCount++;
+        }
     }
 
     // push answer
@@ -262,28 +291,52 @@ public class SRPN {
         }
     }
 
+    // if div by zero, set answer to 0, and exit
+    private boolean divByZero(int b, String sign) {
+        if (b == 0 && sign.equals("/")) {
+            return true;
+        }
+        return false;
+    }
+
+    // if negative power, set answer to negative power, and exit
+    private boolean negativePower(int b, String sign) {
+        if (b < 0 && sign.equals("^")) {
+            return true;
+        }
+        return false;
+    }
+
     // flow control for arithmetic
     private void BODMAS(String sign) {
         // ints for nums to be calculated
-        Integer a = null, b = null, max = Integer.parseInt(maxInt), min = Integer.parseInt(minInt);
+        Integer max = Integer.parseInt(maxInt), min = Integer.parseInt(minInt);
         // if not equals, get numbers
         if (!sign.equals("=")) {
+            if (nums.size() <= 1) {
+                System.out.println("Stack underflow.");
+                answer = Integer.parseInt(nums.peek());
+                pushAnswer();
+                return;
+            }
             // pop numbers
             b = Integer.parseInt(nums.pop());
             a = Integer.parseInt(nums.pop());
-            // if divide by 0, set answer to 0, and exit
-            if (b == 0 && sign.equals("/")) {
+            // check divide by 0
+            if (divByZero(b, sign)) {
                 System.out.println("Divide by 0.");
                 answer = 0;
                 pushAnswer();
                 return;
-            } // if negative power, set answer to negative power, and exit
-            if (b < 0 && sign.equals("^")) {
+            }
+            // check negative power
+            if (negativePower(b, sign)) {
                 System.out.println("Negative power.");
                 answer = b;
                 pushAnswer();
                 return;
-            } // if int entered exceeds limits
+            }
+            // if int entered exceeds limits set answer to correct limit
             try {
                 Integer intTest = Math.addExact(a, b);
             } catch (Exception e) {
@@ -300,7 +353,7 @@ public class SRPN {
                 }
             }
         }
-        // switch for "=" and default for all the other signs
+        // all arithmetic is done here
         switch (sign) {
             case "=":
                 finalAnswer();
@@ -332,7 +385,7 @@ public class SRPN {
         }
     }
 
-    // send answer to user, reset class and exit
+    // send answer to user, reset and exit
     private void finalAnswer() {
         System.out.println(nums.peek());
         reset = false;
