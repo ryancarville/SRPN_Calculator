@@ -1,7 +1,6 @@
 import java.lang.Math;
 import java.util.Stack;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import java.util.regex.*;
 
 //program class for an SRPN calculator. 
 public class SRPN {
@@ -14,9 +13,9 @@ public class SRPN {
     // boolean flags
     boolean calcPower, findCommentEnd, reset;
     // Integers
-    Integer a, b, answer, currRCount, sLength, currNumCount;
+    Integer a, b, answer, currRCount, sLength;
     // Strings
-    String currS, tempNum, regexAll, regexNum, regexSign, minInt, maxInt;
+    String s, tempNum, regexAll, regexNum, regexSign, minInt, maxInt;
     // array of fixed "random" numbers
     Integer[] rNums = new Integer[] { 1804289383, 846930886, 1681692777, 1714636915, 1957747793, 424238335, 719885386,
             1649760492, 596516649, 1189641421, 1025202362, 1350490027, 783368690, 1102520059, 2044897763, 1967513926,
@@ -27,31 +26,28 @@ public class SRPN {
         this.minInt = String.valueOf(Integer.MIN_VALUE);
         this.maxInt = String.valueOf(Integer.MAX_VALUE);
         this.calcPower = true;
-        this.currS = "";
-        this.sLength = currS.length();
         this.tempNum = new String();
         this.currRCount = 0;
-        this.currNumCount = 0;
         this.regexAll = "(.*)([0-9 dr+%^*/=-])(.*)";
         this.regexSign = "(.*)([+%^*/=-])(.*)";
         this.regexNum = "(.*)([0-9])(.*)";
     }
 
     // main program the input calls
-    public void processCommand(String s) {
+    public void processCommand(String userInput) {
         try {
+            // remove any trailing white spaces
+            s = userInput.trim();
             // set all stack minium capacity
-            nums.ensureCapacity(100);
-            tempNumsStack.ensureCapacity(100);
-            signs.ensureCapacity(10);
+            nums.ensureCapacity(25);
+            tempNumsStack.ensureCapacity(25);
+            signs.ensureCapacity(15);
+            // get the length of the current string and update class variable
+            sLength = s.length();
             // add minimum int number to stack at start
             if (nums.isEmpty()) {
                 nums.push(minInt);
             }
-            // remove any white spaces and set to class variable
-            currS = s;
-            // get the length of the current string and update class variable
-            sLength = currS.length();
             // loop thru the input string
             for (int i = 0; i < sLength; i++) {
                 // declare and initialize variable for current char
@@ -60,88 +56,113 @@ public class SRPN {
                 // if nothing is inputted, exit
                 if (sLength == 0) {
                     return;
-                } else if (currInput.equals(" ")) {
+                } // else is current input is white space push any numbers before it
+                else if (currInput.equals(" ")) {
                     pushNum();
-                    continue;
-                }
-                // if input is a "#"
+                } // if input is a "#"
                 else if (currInput.equals("#")) {
-                    String prev = null;
-                    String next = null;
+                    // declare and initialize function strings
+                    String prev = null, next = null, sub = null;
                     // push number if there was one before
                     pushNum();
-                    // if it is a single "#" input or it is at the end of a input preceded by a
-                    // space
-                    if (sLength > 1) {
-                        next = currS.substring(i + 1, i + 2);
+                    // substring of input after current "#"
+                    sub = s.substring(i + 1, sLength);
+                    // if it contains a second "#"
+                    if (sub.contains("#")) {
+                        // next char in input
+                        next = s.substring(i + 1, i + 2);
+                        // if there is a previous index
                         if (i > 0) {
-                            prev = currS.substring(i - 1, i);
-                        }
-                    } else {
-                        boolean soloHash = currS.replaceAll(" ", "").equals("#");
-                        if (soloHash) {
-                            calcPower = calcPower ? false : true;
-                            return;
-                        }
-                    }
-                    if (next.isBlank()) {
-                        int nextHash = currS.indexOf("#", i + 1);
-                        String nextHashPrev = currS.substring(nextHash - 1, nextHash);
-                        if (nextHashPrev.isBlank() && i < sLength) {
-                            i = nextHash;
-                            continue;
-                        } else {
-                            if (sLength - 1 > i) {
-                                next = currS.substring(nextHash + 1, nextHash + 2);
+                            // prev char in input
+                            prev = s.substring(i - 1, i);
+                            // if both are white spaces on/off power
+                            if (next.isBlank() && prev.isBlank()) {
+                                calcPower = calcPower ? false : true;
+                                break;
                             }
-
+                        } // if the space after the current "#" is white space, search if the next "#"
+                          // also has required white space
+                        if (next.isBlank()) {
+                            // index of hash
+                            int nextHash = s.indexOf("#", i + 1);
+                            // pervious char of second hash
+                            String nextHashPrev = s.substring(nextHash - 1, nextHash);
+                            // next char of second hash
+                            String nextHashNext = "a";
+                            // if the second has is at the end of the input, exit
+                            if (nextHash == sLength - 1) {
+                                break;
+                            } // else get next char
+                            else {
+                                nextHashNext = s.substring(nextHash + 1, nextHash + 2);
+                                // if prev and next are white space, on/off power
+                                if (nextHashPrev.isBlank() && nextHashNext.isBlank()) {
+                                    calcPower = calcPower ? false : true;
+                                    break;
+                                } // else if just the previous is white space set i for loop to hash index and
+                                  // continue thru the input
+                                else if (nextHashPrev.isBlank()) {
+                                    i = nextHash;
+                                    continue;
+                                }
+                            }
+                        } // else is is not a valid "#" entry
+                        else {
+                            notValidInput(currInput);
                         }
-
-                    } else {
-                        notValidInput(currInput);
-                        continue;
+                    } // else it is a single "#" for on/off power
+                    else {
+                        calcPower = calcPower ? false : true;
+                        return;
                     }
-
-                } // if calculator is turned off
+                } // if calculator is turned off, exit
                 else if (!calcPower) {
                     return;
                 } // when input is "d" print out the number stack and continue thru the loop
                 else if (currInput.equals("d")) {
                     printNumsStack();
+                    continue;
                 } // if the input is "r" add current position of rNums array to the numbers stack
                   // then continue thru the loop
                 else if (currInput.equals("r")) {
                     rNumsLoop();
+                    continue;
                 } // if there is a negative sign
                 else if (currInput.equals("-")) {
                     handleMinus(currInput, i);
+                    continue;
                 } // if it is a number store it
                 else if (Pattern.matches(regexNum, currInput)) {
                     storeNum(currInput, i);
+                    continue;
                 } // if it is a sign, store it if infix, but solve if single char
                 else if (Pattern.matches(regexSign, currInput)) {
                     storeSignOrSolve(currInput);
+                    continue;
                 } // if the input is not a valid sign, char or number tell user and move to the
                   // next char in the loop
                 else {
                     notValidInput(currInput);
-                }
-                if (currS.endsWith("=") && i == (sLength - 2)) {
+                    continue;
+                } // if input ends with "=" and it is a infix, push number before it and solve
+                  // postfix, then exit
+                if (s.endsWith("=") && i == (sLength - 2)) {
                     pushNum();
                     postfix();
                     break;
-                } else if (i == sLength - 1) {
+                } // else just postfix the arithmetic
+                else if (i == sLength - 1) {
                     postfix();
                     break;
                 }
             }
-        } catch (
-
-        Exception e) {
-            System.out.println(e.getMessage());
+        } catch (Exception e) {
+            if (e.getMessage().equals("String index out of range: 1")) {
+                System.out.println("Stack underflow.");
+            }
         }
     }
-
+    //tells user their char entry was not valid and push any number that was before it
     private void notValidInput(String currInput) {
         System.out.println("Unrecognized operator or operand " + "\"" + currInput + "\"" + ".");
         if (tempNum.length() > 0) {
@@ -186,17 +207,18 @@ public class SRPN {
     private void handleMinus(String currInput, int i) {
         // if the sign is the first in the input > 1 it is treated as a arithmetic sign
         String prev = " ";
-        String next = String.valueOf(currS.charAt(i + 1));
-        String sub = currS.substring(1, sLength);
+        String next = Character.toString(s.charAt(i + 1));
+        String sub = s.substring(i + 1, sLength);
         if (i > 0) {
-            next = String.valueOf(currS.charAt(i + 1));
-            prev = String.valueOf(currS.charAt(i - 1));
+            next = String.valueOf(s.charAt(i + 1));
+            prev = String.valueOf(s.charAt(i - 1));
         } // if the minus sign is between a operator and number it is a negative so store
           // it with number
-        if (Pattern.matches(regexSign, prev) && Pattern.matches(regexNum, next)) {
+        if ((Pattern.matches(regexSign, prev) && Pattern.matches(regexNum, next))
+                || (Pattern.matches(regexNum, next) && prev.isBlank())) {
             storeNum(currInput, i);
             return;
-        } else if (sLength > 1 && currS.startsWith("-") && !sub.contains("-")) {
+        } else if (sLength > 1 && s.startsWith("-") && !sub.contains("-")) {
             storeNum(currInput, i);
         } // else it is a subtraction sign store it
         else {
@@ -263,17 +285,16 @@ public class SRPN {
 
     // push the full number to the number stack from the tempNum string
     private void pushNum() {
-        // if default min int value still on stack, remove
-        if (nums.peek().equals(minInt)) {
-            nums.pop();
-        }
+
         if (tempNum.length() > 0) {
+            // if default min int value still on stack, remove
+            if (nums.peek().equals(minInt)) {
+                nums.pop();
+            }
             // push number to stack
             nums.push(tempNum);
             // clear the temp number string
             tempNum = "";
-            // add one to the counter for current set of numbers
-            currNumCount++;
         }
     }
 
@@ -389,7 +410,6 @@ public class SRPN {
     private void finalAnswer() {
         System.out.println(nums.peek());
         reset = false;
-        currNumCount = 0;
         return;
     }
 }
