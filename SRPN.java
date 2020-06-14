@@ -77,7 +77,7 @@ public class SRPN {
                             prev = s.substring(i - 1, i);
                             // if both are white spaces on/off power
                             if (next.isBlank() && prev.isBlank()) {
-                                calcPower = calcPower ? false : true;
+                                switchPower();
                                 break;
                             }
                         } // if the space after the current "#" is white space, search if the next "#"
@@ -87,19 +87,18 @@ public class SRPN {
                             int nextHash = s.indexOf("#", i + 1);
                             // pervious char of second hash
                             String nextHashPrev = s.substring(nextHash - 1, nextHash);
-                            // next char of second hash
-                            String nextHashNext = "a";
+
                             // if the second has is at the end of the input, exit
                             if (nextHash == sLength - 1) {
                                 break;
                             } // else get next char
-                            else {
-                                nextHashNext = s.substring(nextHash + 1, nextHash + 2);
-                                // if prev and next are white space, on/off power
+                            else {// next char of second hash
+                                String nextHashNext = s.substring(nextHash + 1, nextHash + 2);
+                                // if second hash prev and next are white space, on/off power
                                 if (nextHashPrev.isBlank() && nextHashNext.isBlank()) {
-                                    calcPower = calcPower ? false : true;
+                                    switchPower();
                                     break;
-                                } // else if just the previous is white space set i for loop to hash index and
+                                } // if just the previous is white space, set i for loop to hash index and
                                   // continue thru the input
                                 else if (nextHashPrev.isBlank()) {
                                     i = nextHash;
@@ -112,7 +111,7 @@ public class SRPN {
                         }
                     } // else it is a single "#" for on/off power
                     else {
-                        calcPower = calcPower ? false : true;
+                        switchPower();
                         return;
                     }
                 } // if calculator is turned off, exit
@@ -157,12 +156,19 @@ public class SRPN {
                 }
             }
         } catch (Exception e) {
-            if (e.getMessage().equals("String index out of range: 1")) {
+            if (e.getMessage().equals("String index out of range: 1") || e.getMessage().equals(null)) {
                 System.out.println("Stack underflow.");
             }
         }
     }
-    //tells user their char entry was not valid and push any number that was before it
+
+    // flips boolean on/off flag
+    private void switchPower() {
+        calcPower = calcPower ? false : true;
+    }
+
+    // tells user their char entry was not valid and push any number that was before
+    // it
     private void notValidInput(String currInput) {
         System.out.println("Unrecognized operator or operand " + "\"" + currInput + "\"" + ".");
         if (tempNum.length() > 0) {
@@ -271,21 +277,8 @@ public class SRPN {
         }
     }
 
-    // check the order of operations. If the current sign is a higher order sign
-    // then return true
-    private boolean orderOfOps(String sign1, String sign2) {
-        if ((sign1.equals("*") || sign1.equals("/")) && (sign2.equals("+") || sign2.equals("-"))) {
-            return true;
-        } else if ((sign1.equals("+") || sign1.equals("-")) && (sign2.equals("+") || sign2.equals("-"))) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     // push the full number to the number stack from the tempNum string
     private void pushNum() {
-
         if (tempNum.length() > 0) {
             // if default min int value still on stack, remove
             if (nums.peek().equals(minInt)) {
@@ -312,20 +305,24 @@ public class SRPN {
         }
     }
 
-    // if div by zero, set answer to 0, and exit
-    private boolean divByZero(int b, String sign) {
-        if (b == 0 && sign.equals("/")) {
+    // check the order of operations. If the current sign is a higher order sign
+    // then the top of the stack return true
+    private boolean orderOfOps(String sign1, String sign2) {
+        if (sign1.equals("^") && !sign2.equals("^")) {
             return true;
-        }
-        return false;
-    }
-
-    // if negative power, set answer to negative power, and exit
-    private boolean negativePower(int b, String sign) {
-        if (b < 0 && sign.equals("^")) {
+        } else if (sign1.equals("*") && sign2.equals("*") || sign2.equals("/") || sign2.equals("%")
+                || (sign2.equals("+") || sign2.equals("-"))) {
             return true;
+        } else if (sign1.equals("/") && sign2.equals("/") || sign2.equals("%")
+                || (sign2.equals("+") || sign2.equals("-"))) {
+            return true;
+        } else if (sign1.equals("%") && sign2.equals("%") || (sign2.equals("+") || sign2.equals("-"))) {
+            return true;
+        } else if ((sign1.equals("+") || sign1.equals("-")) && (sign2.equals("+") || sign2.equals("-"))) {
+            return true;
+        } else {
+            return false;
         }
-        return false;
     }
 
     // flow control for arithmetic
@@ -404,6 +401,22 @@ public class SRPN {
                 pushAnswer();
                 break;
         }
+    }
+
+    // if div by zero, set answer to 0, and exit
+    private boolean divByZero(int b, String sign) {
+        if (b == 0 && sign.equals("/")) {
+            return true;
+        }
+        return false;
+    }
+
+    // if negative power, set answer to negative power, and exit
+    private boolean negativePower(int b, String sign) {
+        if (b < 0 && sign.equals("^")) {
+            return true;
+        }
+        return false;
     }
 
     // send answer to user, reset and exit
